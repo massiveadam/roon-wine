@@ -1,7 +1,8 @@
 # Roon on Arch Linux
 
 An Arch-oriented compatibility package for running the Windows Roon desktop app
-as both a **Roon Control** and a **local audio Output** on Linux.
+as both a **Roon Control** and a **local audio Output** on Linux. It uses a pinned
+GE-Proton runtime through UMU by default, with system Wine as a fallback.
 
 This project does not redistribute Roon. The installer is downloaded directly
 from Roon Labs when the user runs `roon-wine install`.
@@ -34,7 +35,7 @@ This asks `yay` to build the local `PKGBUILD`, resolve dependencies (including
 AUR dependencies), and install the resulting package through `pacman`. It does
 not require this project to be published in the AUR.
 
-Then create the Wine prefix and install Roon:
+Then create the isolated Proton prefix and install Roon:
 
 ```sh
 roon-wine install
@@ -74,10 +75,12 @@ roon-wine winecfg              open Wine configuration for the managed prefix
 roon-wine set display auto     auto, wayland, or xwayland
 roon-wine set audio pipewire   pipewire, pulse, or alsa
 roon-wine set scale 1.5        positive decimal scale factor
+roon-wine set runner proton    proton (default) or wine fallback
+roon-wine runtime              download and verify the pinned Proton runtime
 roon-wine kill                 stop processes in the managed prefix
 ```
 
-The default `display=auto` prefers native Wine Wayland when the session and Wine
+The default `display=auto` prefers native Wayland when the session and runner
 support it, then falls back to XWayland. The default `audio=pipewire` uses Wine's
 PulseAudio driver through PipeWire's PulseAudio compatibility service. This is
 the most broadly compatible way to expose the Linux desktop as a Roon endpoint.
@@ -87,15 +90,18 @@ conflict with PipeWire device ownership and is not assumed to provide exclusive
 or bit-perfect playback. Those properties must be verified in Roon's signal path
 and against the selected Linux device.
 
-Use `roon-wine winecfg` after installation when manual Wine device, graphics,
+With the fallback runner selected, use `roon-wine winecfg` after installation when manual Wine device, graphics,
 desktop-integration, or library settings are needed. It always opens the prefix
 managed by this package rather than the user's default Wine prefix.
 
-## Known compatibility concern
+## Runtime policy
 
-Wine 11 has been reported to render Roon with washed-out colors. `roon-wine
-doctor` warns when Wine 11 is detected. The project will maintain a tested Wine
-version matrix instead of silently changing the user's system Wine installation.
+The launcher pins and verifies GE-Proton rather than following an untested
+`latest` release. The roughly 500 MiB runtime archive is cached under
+`${XDG_CACHE_HOME:-~/.cache}/roon-wine`; the extracted runtime and prefix live
+under `${XDG_DATA_HOME:-~/.local/share}/roon-wine`. `roon-wine set runner wine`
+is available for diagnosis, but current system Wine 11 aborts in Roon's volume
+enumeration because `wminet_utils.GetErrorInfo` is not implemented.
 
 ## Development
 

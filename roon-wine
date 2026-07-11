@@ -9,10 +9,17 @@ readonly PREFIX="$DATA_HOME/prefix"
 readonly CONFIG_FILE="$CONFIG_HOME/config"
 readonly INSTALLER_URL='https://download.roonlabs.com/builds/RoonInstaller64.exe'
 readonly INSTALLER="$CACHE_HOME/RoonInstaller64.exe"
+readonly PROTON_VERSION='GE-Proton11-1'
+readonly PROTON_ARCHIVE="$CACHE_HOME/$PROTON_VERSION.tar.gz"
+readonly PROTON_HOME="$DATA_HOME/runtimes"
+readonly PROTON_PATH="$PROTON_HOME/$PROTON_VERSION"
+readonly PROTON_URL="https://github.com/GloriousEggroll/proton-ge-custom/releases/download/$PROTON_VERSION/$PROTON_VERSION.tar.gz"
+readonly PROTON_SHA512='d5792f4ac81d3832f5fe40467090c67d561b780c6a4236e76f8b59cb1d4ca25c82df91018e79d156bb267a67224a41f0d621a1e6cbbeec79040cc60275dc9e5a'
 
 display=auto
 audio=pipewire
 scale=1.0
+runner=proton
 
 die() { printf 'roon-wine: %s\n' "$*" >&2; exit 1; }
 note() { printf '==> %s\n' "$*"; }
@@ -35,6 +42,8 @@ Commands:
   set display MODE         MODE: auto, wayland, xwayland
   set audio MODE           MODE: pipewire, pulse, alsa
   set scale FACTOR         Positive decimal UI scale
+  set runner RUNNER        RUNNER: proton (default), wine
+  runtime                  Install/verify the pinned Proton runtime
   kill                     Stop Wine processes in the managed prefix
   help                     Show this help
 EOF
@@ -47,6 +56,7 @@ load_config() {
       display) [[ $value =~ ^(auto|wayland|xwayland)$ ]] && display=$value ;;
       audio) [[ $value =~ ^(pipewire|pulse|alsa)$ ]] && audio=$value ;;
       scale) valid_scale "$value" && scale=$value ;;
+      runner) [[ $value =~ ^(proton|wine)$ ]] && runner=$value ;;
     esac
   done < "$CONFIG_FILE"
 }
@@ -54,11 +64,39 @@ load_config() {
 save_config() {
   mkdir -p "$CONFIG_HOME"
   umask 077
-  printf 'display=%s\naudio=%s\nscale=%s\n' "$display" "$audio" "$scale" > "$CONFIG_FILE"
+  printf 'display=%s\naudio=%s\nscale=%s\nrunner=%s\n' "$display" "$audio" "$scale" "$runner" > "$CONFIG_FILE"
 }
 
 wine_cmd() {
-  env WINEPREFIX="$PREFIX" WINEDLLOVERRIDES='winemenubuilder.exe=d' "$@"
+  local overrides='winemenubuilder.exe=d'
+  [[ -n ${WINEDLLOVERRIDES:-} ]] && overrides="$WINEDLLOVERRIDES;$overrides"
+  env WINEPREFIX="$PREFIX" WINEDLLOVERRIDES="$overrides" "$@"
+}
+
+install_runtime() {
+  have umu-run || die 'umu-launcher is required for the Proton runner'
+  have sha512sum || die 'sha512sum is required'
+  [[ -x $PROTON_PATH/proton ]] && { note "using $PROTON_VERSION"; return; }
+  mkdir -p "$CACHE_HOME" "$PROTON_HOME"
+  note "downloading pinned runtime $PROTON_VERSION"
+  curl --fail --location --retry 3 --continue-at - --output "$PROTON_ARCHIVE" "$PROTON_URL"
+  printf '%s  %s\n' "$PROTON_SHA512" "$PROTON_ARCHIVE" | sha512sum --check --status \
+    || die 'Proton runtime checksum verification failed'
+  rm -rf "$PROTON_PATH"
+  tar -xzf "$PROTON_ARCHIVE" -C "$PROTON_HOME"
+  [[ -x $PROTON_PATH/proton ]] || die 'Proton runtime extraction failed'
+}
+
+proton_cmd() {
+  install_runtime
+  local wayland=0
+  [[ $(selected_display) == wayland ]] && wayland=1
+  env WINEPREFIX="$PREFIX" GAMEID=0 PROTONPATH="$PROTON_PATH" \
+    PROTON_ENABLE_WAYLAND="$wayland" WINEDLLOVERRIDES="${WINEDLLOVERRIDES:-}" umu-run "$@"
+}
+
+runner_cmd() {
+  if [[ $runner == proton ]]; then proton_cmd "$@"; else wine_cmd wine "$@"; fi
 }
 
 wine_major() {
@@ -67,6 +105,7 @@ wine_major() {
 
 wayland_capable() {
   [[ ${XDG_SESSION_TYPE:-} == wayland && -n ${WAYLAND_DISPLAY:-} ]] || return 1
+  [[ $runner == proton ]] && return 0
   [[ $(wine_major) =~ ^[0-9]+$ ]] && (( $(wine_major) >= 9 ))
 }
 
@@ -108,6 +147,7 @@ configure_prefix() {
 }
 
 open_winecfg() {
+  [[ $runner == wine ]] || die "winecfg is only available with 'roon-wine set runner wine'"
   have winecfg || die 'winecfg is required'
   [[ -d $PREFIX ]] || die "prefix does not exist; run 'roon-wine install' first"
   local selected
@@ -129,41 +169,54 @@ find_roon() {
 }
 
 install_roon() {
-  have wine || die 'wine is required'
-  have winetricks || die 'winetricks is required'
   have curl || die 'curl is required'
   mkdir -p "$DATA_HOME" "$CACHE_HOME"
   save_config
 
-  if [[ ! -d $PREFIX ]]; then
+  if [[ $runner == wine && ! -d $PREFIX ]]; then
     note 'creating isolated 64-bit Wine prefix'
     env WINEARCH=win64 WINEPREFIX="$PREFIX" wineboot --init
   else
     note 'reusing existing prefix (no user data will be deleted)'
   fi
 
-  note 'installing required Windows runtime and prefix settings'
-  env WINEPREFIX="$PREFIX" winetricks -q win10 dotnet7 nocrashdialog
-  configure_prefix
+  if [[ $runner == proton ]]; then
+    install_runtime
+  else
+    have wine || die 'wine is required for the Wine fallback'
+    have winetricks || die 'winetricks is required for the Wine fallback'
+    note 'installing required Windows runtime and prefix settings'
+    env WINEPREFIX="$PREFIX" winetricks -q win10 dotnet7 nocrashdialog
+    configure_prefix
+  fi
 
   note 'downloading the current installer directly from Roon Labs'
   curl --fail --location --retry 3 --output "$INSTALLER.part" "$INSTALLER_URL"
   mv "$INSTALLER.part" "$INSTALLER"
-  wine_cmd wine "$INSTALLER"
+  runner_cmd "$INSTALLER"
 }
 
 run_roon() {
   local exe selected
   exe=$(find_roon) || die "Roon is not installed; run 'roon-wine install'"
   selected=$(selected_display)
-  configure_prefix
+  [[ $runner == wine ]] && configure_prefix
   note "launching Roon with display=$selected audio=$audio scale=$scale"
   if [[ $selected == wayland ]]; then
-    env -u DISPLAY WINEPREFIX="$PREFIX" WINEDEBUG=-all \
-      WINEDLLOVERRIDES='windows.media.mediacontrol=;winemenubuilder.exe=d' \
-      wine "$exe" "-scalefactor=$scale"
+    if [[ $runner == proton ]]; then
+      (
+        unset DISPLAY
+        export WINEDEBUG=-all WINEDLLOVERRIDES='windows.media.mediacontrol='
+        proton_cmd "$exe" "-scalefactor=$scale"
+      )
+    else
+      env -u DISPLAY WINEPREFIX="$PREFIX" WINEDEBUG=-all \
+        WINEDLLOVERRIDES='windows.media.mediacontrol=;winemenubuilder.exe=d' \
+        wine "$exe" "-scalefactor=$scale"
+    fi
   else
-    wine_cmd env WINEDEBUG=-all wine "$exe" "-scalefactor=$scale"
+    if [[ $runner == proton ]]; then WINEDEBUG=-all proton_cmd "$exe" "-scalefactor=$scale"
+    else wine_cmd env WINEDEBUG=-all wine "$exe" "-scalefactor=$scale"; fi
   fi
 }
 
@@ -176,13 +229,19 @@ doctor() {
   printf '%-20s %s\n' 'X11 display' "${DISPLAY:-not set}"
   printf '%-20s %s\n' 'configured display' "$display -> $(selected_display 2>/dev/null || echo unavailable)"
   printf '%-20s %s\n' 'configured audio' "$audio"
+  printf '%-20s %s\n' 'runner' "$runner"
+  printf '%-20s %s\n' 'Proton runtime' "$([[ -x $PROTON_PATH/proton ]] && echo "$PROTON_VERSION present" || echo missing)"
   printf '%-20s %s\n' 'Wine' "$(wine --version 2>/dev/null || echo missing)"
   printf '%-20s %s\n' 'PipeWire' "$(user_service_state pipewire.service || true)"
   printf '%-20s %s\n' 'Pulse service' "$(user_service_state pipewire-pulse.service pulseaudio.service || true)"
   printf '%-20s %s\n' 'prefix' "$([[ -d $PREFIX ]] && echo present || echo missing)"
   printf '%-20s %s\n' 'Roon executable' "$(find_roon >/dev/null && echo present || echo missing)"
 
-  have wine || { printf 'WARN: wine is not installed\n' >&2; failures=1; }
+  if [[ $runner == proton ]]; then
+    have umu-run || { printf 'WARN: umu-launcher is not installed\n' >&2; failures=1; }
+  else
+    have wine || { printf 'WARN: wine is not installed\n' >&2; failures=1; }
+  fi
   if [[ $major == 11 ]]; then
     printf 'WARN: Wine 11 has a reported washed-out color regression with Roon\n' >&2
   fi
@@ -199,6 +258,7 @@ set_value() {
     display) [[ $value =~ ^(auto|wayland|xwayland)$ ]] || die 'display must be auto, wayland, or xwayland'; display=$value ;;
     audio) [[ $value =~ ^(pipewire|pulse|alsa)$ ]] || die 'audio must be pipewire, pulse, or alsa'; audio=$value ;;
     scale) valid_scale "$value" || die 'scale must be a positive decimal'; scale=$value ;;
+    runner) [[ $value =~ ^(proton|wine)$ ]] || die 'runner must be proton or wine'; runner=$value ;;
     *) die 'setting must be display, audio, or scale' ;;
   esac
   save_config
@@ -212,9 +272,15 @@ main() {
     run) run_roon ;;
     configure) configure_prefix ;;
     winecfg) open_winecfg ;;
+    runtime) install_runtime ;;
     doctor) doctor ;;
     set) shift; set_value "${1:-}" "${2:-}" ;;
-    kill) [[ -d $PREFIX ]] && wine_cmd wineserver -k || true ;;
+    kill)
+      if [[ $runner == proton && -x $PROTON_PATH/files/bin/wineserver ]]; then
+        WINEPREFIX="$PREFIX" "$PROTON_PATH/files/bin/wineserver" -k || true
+      elif [[ -d $PREFIX ]]; then wine_cmd wineserver -k || true
+      fi
+      ;;
     help|-h|--help) usage ;;
     *) usage >&2; exit 2 ;;
   esac

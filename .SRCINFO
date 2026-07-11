@@ -1,14 +1,15 @@
 pkgbase = roon-wine
 	pkgdesc = Run the Roon desktop controller and audio output on Arch Linux using Wine
 	pkgver = 0.1.0
-	pkgrel = 2
+	pkgrel = 3
 	url = https://github.com/massiveadam/roon-wine
 	arch = x86_64
 	license = MIT
 	depends = bash
 	depends = curl
-	depends = wine
-	depends = winetricks
+	depends = umu-launcher
+	optdepends = wine: system Wine fallback runner
+	optdepends = winetricks: runtime setup for the system Wine fallback
 	optdepends = pipewire-pulse: recommended audio backend for PipeWire desktops
 	optdepends = pulseaudio: PulseAudio backend
 	optdepends = xorg-xwayland: XWayland display fallback
@@ -16,7 +17,7 @@ pkgbase = roon-wine
 	source = roon-wine
 	source = roon-wine.desktop
 	source = LICENSE
-	sha256sums = 6cc40eaf45e2bd7b64df8de3e5c43c4c7213ae27b7d0cba04dd297ab8d0d6e81
+	sha256sums = 9658888396e95ec78b5d6c9509dc84efda175b567ea8e57590be797e84fda6fb
 	sha256sums = 300b9418ac741675a91fda59670456738f4d6d5693a4cc7899138b94425acd26
 	sha256sums = bcecb636801e3d141e250e5d457229661aaf57138f03899c172ce2446dcd22ad
 

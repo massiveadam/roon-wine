@@ -1,5 +1,15 @@
 # Compatibility testing
 
+## 2026-07-10: native Wayland hardware
+
+On an x86_64 CachyOS/Arch laptop running Niri, PipeWire, and native Wayland,
+Roon build 1671 remained running under UMU 1.4 and GE-Proton11-1, reached normal
+update/network activity, and rendered with Wayland app ID `roon.exe`. The same
+build aborts under system Wine 11.12 in the unimplemented
+`wminet_utils.GetErrorInfo` function. Installing the legacy .NET Framework 4.x
+chain was rejected as a default because it was slow, error-prone, and did not
+address the Wine implementation gap.
+
 ## 2026-07-10: packaging and virtual runtime
 
 Host: Apple Silicon macOS 26.5.1. Test data and VM disks were stored on an
