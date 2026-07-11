@@ -70,6 +70,7 @@ roon-wine install              create or repair the prefix and install Roon
 roon-wine run                  launch Roon
 roon-wine doctor               report display, audio, Wine, and prefix state
 roon-wine configure            apply the configured display/audio backends
+roon-wine winecfg              open Wine configuration for the managed prefix
 roon-wine set display auto     auto, wayland, or xwayland
 roon-wine set audio pipewire   pipewire, pulse, or alsa
 roon-wine set scale 1.5        positive decimal scale factor
@@ -85,6 +86,10 @@ Direct ALSA mode is intended for experimentation with dedicated devices. It may
 conflict with PipeWire device ownership and is not assumed to provide exclusive
 or bit-perfect playback. Those properties must be verified in Roon's signal path
 and against the selected Linux device.
+
+Use `roon-wine winecfg` after installation when manual Wine device, graphics,
+desktop-integration, or library settings are needed. It always opens the prefix
+managed by this package rather than the user's default Wine prefix.
 
 ## Known compatibility concern
 

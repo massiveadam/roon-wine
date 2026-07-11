@@ -7,9 +7,12 @@ Type=Application
 Categories=AudioVideo;Audio;Player;
 StartupNotify=true
 StartupWMClass=roon.exe
-Actions=Doctor;
+Actions=WineConfig;Doctor;
+
+[Desktop Action WineConfig]
+Name=Configure Wine prefix
+Exec=roon-wine winecfg
 
 [Desktop Action Doctor]
 Name=Run compatibility diagnostics
 Exec=roon-wine doctor
-

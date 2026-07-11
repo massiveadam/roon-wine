@@ -30,6 +30,7 @@ Commands:
   install                  Create/repair the prefix and install Roon
   run                      Launch Roon
   configure                Apply display and audio configuration
+  winecfg                  Open Wine configuration for the managed prefix
   doctor                   Print compatibility diagnostics
   set display MODE         MODE: auto, wayland, xwayland
   set audio MODE           MODE: pipewire, pulse, alsa
@@ -104,6 +105,19 @@ configure_prefix() {
   wine_cmd wine reg add 'HKEY_CURRENT_USER\Software\Wine\Drivers' \
     /v Audio /t REG_SZ /d "$wine_audio" /f >/dev/null
   note "configured display=$selected audio=$audio"
+}
+
+open_winecfg() {
+  have winecfg || die 'winecfg is required'
+  [[ -d $PREFIX ]] || die "prefix does not exist; run 'roon-wine install' first"
+  local selected
+  selected=$(selected_display)
+  note "opening Wine configuration with display=$selected"
+  if [[ $selected == wayland ]]; then
+    env -u DISPLAY WINEPREFIX="$PREFIX" winecfg
+  else
+    wine_cmd winecfg
+  fi
 }
 
 find_roon() {
@@ -197,6 +211,7 @@ main() {
     install) install_roon ;;
     run) run_roon ;;
     configure) configure_prefix ;;
+    winecfg) open_winecfg ;;
     doctor) doctor ;;
     set) shift; set_value "${1:-}" "${2:-}" ;;
     kill) [[ -d $PREFIX ]] && wine_cmd wineserver -k || true ;;
