@@ -158,4 +158,6 @@ the socket path; on other systems the active Docker context is used.
 
 See [docs/architecture.md](docs/architecture.md) for design boundaries and the
 planned test matrix. See [docs/testing.md](docs/testing.md) for recorded results
-and the physical-hardware release smoke test.
+and the physical-hardware release smoke test. See
+[docs/window-managers.md](docs/window-managers.md) for tested Niri and Hyprland
+tiling rules.

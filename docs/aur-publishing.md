@@ -23,7 +23,8 @@ git -c init.defaultbranch=master clone \
   ssh://aur@aur.archlinux.org/roon-proton.git ~/aur/roon-proton
 cd ~/aur/roon-proton
 cp ~/roon-wine/{PKGBUILD,.SRCINFO,roon-wine,roon-wine.desktop,LICENSE} .
-git add PKGBUILD .SRCINFO roon-wine roon-wine.desktop LICENSE
+cp ~/roon-wine/roon-proton.{niri.kdl,hyprland.conf,hyprland.lua} .
+git add PKGBUILD .SRCINFO roon-wine roon-wine.desktop roon-proton.* LICENSE
 git commit -m 'Initial import: roon-proton 0.2.0-1'
 git push origin master
 ```
