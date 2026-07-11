@@ -1,0 +1,15 @@
+[Desktop Entry]
+Name=Roon
+Comment=Roon music controller and local audio output
+Exec=roon-wine run
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Player;
+StartupNotify=true
+StartupWMClass=roon.exe
+Actions=Doctor;
+
+[Desktop Action Doctor]
+Name=Run compatibility diagnostics
+Exec=roon-wine doctor
+
