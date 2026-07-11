@@ -1,7 +1,7 @@
 # Maintainer: roon-wine contributors
 pkgname=roon-wine
 pkgver=0.1.0
-pkgrel=4
+pkgrel=5
 pkgdesc='Roon desktop controller and native audio endpoint for Arch Linux'
 arch=('x86_64')
 url='https://github.com/massiveadam/roon-wine'
@@ -18,7 +18,7 @@ optdepends=(
 )
 source=('roon-wine' 'roon-wine.desktop' 'LICENSE')
 sha256sums=(
-  '8e7f1e0d6addedb1d5586f75f86055ce9e3fdf3326c2554b52e3d1502bfa5413'
+  '790a59d4455fd824b55f563fe99e14db28583c7c6e0aa54d5af5a70b883a9ab3'
   '300b9418ac741675a91fda59670456738f4d6d5693a4cc7899138b94425acd26'
   'bcecb636801e3d141e250e5d457229661aaf57138f03899c172ce2446dcd22ad'
 )

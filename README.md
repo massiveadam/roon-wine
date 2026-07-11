@@ -80,6 +80,7 @@ roon-wine set runner proton    proton (default) or wine fallback
 roon-wine runtime              download and verify the pinned Proton runtime
 roon-wine endpoint install     install/start the native Linux audio endpoint
 roon-wine endpoint status      show endpoint service status
+roon-wine endpoint release     stop playback and release the ALSA device
 roon-wine kill                 stop processes in the managed prefix
 ```
 
@@ -89,6 +90,13 @@ found that Proton 10 avoids Wine 11's Roon crash, while XWayland avoids Proton
 Roon Bridge with direct ALSA hardware access, keeping playback outside Wine's
 incomplete WASAPI format negotiation. Direct access can temporarily reserve the
 device while Roon is playing; stop playback before another desktop app needs it.
+
+This dedicated path is the recommended audiophile mode: Roon talks to the native
+RAAT endpoint, which opens the hardware ALSA device without a desktop mixer or
+Wine audio layer. It is intentionally independent of the controller window and
+will not appear as a PipeWire media session. Use `roon-wine endpoint release` if
+the controller has closed while the core is still playing or another app needs
+the device.
 
 To make the desktop a Roon endpoint:
 
