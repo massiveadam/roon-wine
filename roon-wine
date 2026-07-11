@@ -242,7 +242,7 @@ doctor() {
   else
     have wine || { printf 'WARN: wine is not installed\n' >&2; failures=1; }
   fi
-  if [[ $major == 11 ]]; then
+  if [[ $runner == wine && $major == 11 ]]; then
     printf 'WARN: Wine 11 has a reported washed-out color regression with Roon\n' >&2
   fi
   if [[ $audio == pipewire ]] && ! systemctl --user is-active --quiet pipewire-pulse 2>/dev/null; then

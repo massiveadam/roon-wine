@@ -17,7 +17,7 @@ pkgbase = roon-wine
 	source = roon-wine
 	source = roon-wine.desktop
 	source = LICENSE
-	sha256sums = 9658888396e95ec78b5d6c9509dc84efda175b567ea8e57590be797e84fda6fb
+	sha256sums = 1b75d11f171cbcf1ad16f769b3c6c6ef5ef92a1b9aa4ab9b036564f18bfcb627
 	sha256sums = 300b9418ac741675a91fda59670456738f4d6d5693a4cc7899138b94425acd26
 	sha256sums = bcecb636801e3d141e250e5d457229661aaf57138f03899c172ce2446dcd22ad
 
