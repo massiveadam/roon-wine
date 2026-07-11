@@ -2,13 +2,18 @@
 
 ## 2026-07-10: native Wayland hardware
 
-On an x86_64 CachyOS/Arch laptop running Niri, PipeWire, and native Wayland,
-Roon build 1671 remained running under UMU 1.4 and GE-Proton11-1, reached normal
-update/network activity, and rendered with Wayland app ID `roon.exe`. The same
-build aborts under system Wine 11.12 in the unimplemented
-`wminet_utils.GetErrorInfo` function. Installing the legacy .NET Framework 4.x
-chain was rejected as a default because it was slow, error-prone, and did not
-address the Wine implementation gap.
+On an x86_64 CachyOS/Arch laptop running Niri and PipeWire, Roon build 1671
+remained running under UMU 1.4 and GE-Proton10-34 through XWayland. Fonts, album
+art, colors, scaling, library/core connectivity, and animation-settled captures
+rendered correctly. Native Proton 10 Wayland failed to create Roon's second GL
+context. Wine/Proton 11 aborts in the unimplemented
+`wminet_utils.GetErrorInfo` function.
+
+The Windows RAAT endpoint created PipeWire streams but advertised an empty
+WASAPI format set and rejected playback setup. The supported endpoint design is
+therefore the official native Linux Roon Bridge with `pipewire-alsa`. It started
+successfully as a user service and registered with Roon discovery. Final LAN
+playback confirmation requires UFW to allow the local Roon core to connect.
 
 ## 2026-07-10: packaging and virtual runtime
 

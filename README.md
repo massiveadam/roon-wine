@@ -2,7 +2,8 @@
 
 An Arch-oriented compatibility package for running the Windows Roon desktop app
 as both a **Roon Control** and a **local audio Output** on Linux. It uses a pinned
-GE-Proton runtime through UMU by default, with system Wine as a fallback.
+GE-Proton runtime through UMU for the controller and Roon's native Linux Bridge
+for reliable endpoint playback, with system Wine as a diagnostic fallback.
 
 This project does not redistribute Roon. The installer is downloaded directly
 from Roon Labs when the user runs `roon-wine install`.
@@ -77,13 +78,28 @@ roon-wine set audio pipewire   pipewire, pulse, or alsa
 roon-wine set scale 1.5        positive decimal scale factor
 roon-wine set runner proton    proton (default) or wine fallback
 roon-wine runtime              download and verify the pinned Proton runtime
+roon-wine endpoint install     install/start the native Linux audio endpoint
+roon-wine endpoint status      show endpoint service status
 roon-wine kill                 stop processes in the managed prefix
 ```
 
-The default `display=auto` prefers native Wayland when the session and runner
-support it, then falls back to XWayland. The default `audio=pipewire` uses Wine's
-PulseAudio driver through PipeWire's PulseAudio compatibility service. This is
-the most broadly compatible way to expose the Linux desktop as a Roon endpoint.
+The default `display=auto` uses XWayland with the pinned Proton runtime. Testing
+found that Proton 10 avoids Wine 11's Roon crash, while XWayland avoids Proton
+10's second-OpenGL-context failure on native Wayland. The native endpoint uses
+Roon Bridge with `pipewire-alsa`, keeping playback outside Wine's incomplete
+WASAPI format negotiation.
+
+To make the desktop a Roon endpoint:
+
+```sh
+roon-wine endpoint install
+```
+
+If UFW blocks discovery, allow only your trusted LAN (adjust the subnet):
+
+```sh
+sudo ufw allow from 192.168.12.0/24
+```
 
 Direct ALSA mode is intended for experimentation with dedicated devices. It may
 conflict with PipeWire device ownership and is not assumed to provide exclusive
@@ -96,11 +112,11 @@ managed by this package rather than the user's default Wine prefix.
 
 ## Runtime policy
 
-The launcher pins and verifies GE-Proton rather than following an untested
+The launcher pins and verifies GE-Proton 10 rather than following an untested
 `latest` release. The roughly 500 MiB runtime archive is cached under
 `${XDG_CACHE_HOME:-~/.cache}/roon-wine`; the extracted runtime and prefix live
 under `${XDG_DATA_HOME:-~/.local/share}/roon-wine`. `roon-wine set runner wine`
-is available for diagnosis, but current system Wine 11 aborts in Roon's volume
+is available for diagnosis, but current Wine/Proton 11 aborts in Roon's volume
 enumeration because `wminet_utils.GetErrorInfo` is not implemented.
 
 ## Development

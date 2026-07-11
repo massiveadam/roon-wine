@@ -9,12 +9,18 @@ readonly PREFIX="$DATA_HOME/prefix"
 readonly CONFIG_FILE="$CONFIG_HOME/config"
 readonly INSTALLER_URL='https://download.roonlabs.com/builds/RoonInstaller64.exe'
 readonly INSTALLER="$CACHE_HOME/RoonInstaller64.exe"
-readonly PROTON_VERSION='GE-Proton11-1'
+readonly PROTON_VERSION='GE-Proton10-34'
 readonly PROTON_ARCHIVE="$CACHE_HOME/$PROTON_VERSION.tar.gz"
 readonly PROTON_HOME="$DATA_HOME/runtimes"
 readonly PROTON_PATH="$PROTON_HOME/$PROTON_VERSION"
 readonly PROTON_URL="https://github.com/GloriousEggroll/proton-ge-custom/releases/download/$PROTON_VERSION/$PROTON_VERSION.tar.gz"
-readonly PROTON_SHA512='d5792f4ac81d3832f5fe40467090c67d561b780c6a4236e76f8b59cb1d4ca25c82df91018e79d156bb267a67224a41f0d621a1e6cbbeec79040cc60275dc9e5a'
+readonly PROTON_SHA512='9fd0b2cfbd501c0b5c892239c392c7283a029b5e5d5a77d3f85b0ce190d555456241a18eebca16b53f094b403499201c13550a3f0b9b365e1a5eb5737cbb7303'
+readonly BRIDGE_URL='https://download.roonlabs.net/builds/RoonBridge_linuxx64.tar.bz2'
+readonly BRIDGE_HOME="$DATA_HOME/native-endpoint"
+readonly BRIDGE_APP="$BRIDGE_HOME/RoonBridge"
+readonly BRIDGE_DATA="$BRIDGE_HOME/data"
+readonly BRIDGE_ARCHIVE="$CACHE_HOME/RoonBridge_linuxx64.tar.bz2"
+readonly BRIDGE_SERVICE="$HOME/.config/systemd/user/roonbridge-native.service"
 
 display=auto
 audio=pipewire
@@ -44,6 +50,9 @@ Commands:
   set scale FACTOR         Positive decimal UI scale
   set runner RUNNER        RUNNER: proton (default), wine
   runtime                  Install/verify the pinned Proton runtime
+  endpoint install         Install/start the native Linux audio endpoint
+  endpoint start|stop      Control the native audio endpoint
+  endpoint status          Show native endpoint service status
   kill                     Stop Wine processes in the managed prefix
   help                     Show this help
 EOF
@@ -111,10 +120,59 @@ wayland_capable() {
 
 selected_display() {
   if [[ $display == auto ]]; then
-    if wayland_capable; then printf 'wayland\n'; else printf 'xwayland\n'; fi
+    # Roon needs a second GL context. GE-Proton 10 renders it reliably through
+    # XWayland, while its native Wayland driver fails that context creation.
+    if [[ $runner == proton ]]; then printf 'xwayland\n'
+    elif wayland_capable; then printf 'wayland\n'; else printf 'xwayland\n'; fi
   else
     printf '%s\n' "$display"
   fi
+}
+
+endpoint_install() {
+  have systemctl || die 'systemd is required for the native endpoint'
+  have tar || die 'tar is required for the native endpoint'
+  mkdir -p "$CACHE_HOME" "$BRIDGE_HOME" "$BRIDGE_DATA" "$(dirname "$BRIDGE_SERVICE")"
+  note 'downloading the official native Roon Bridge endpoint'
+  curl --fail --location --retry 3 --output "$BRIDGE_ARCHIVE.part" "$BRIDGE_URL"
+  mv "$BRIDGE_ARCHIVE.part" "$BRIDGE_ARCHIVE"
+  rm -rf "$BRIDGE_HOME/.install"
+  mkdir "$BRIDGE_HOME/.install"
+  tar -xjf "$BRIDGE_ARCHIVE" -C "$BRIDGE_HOME/.install"
+  [[ -x $BRIDGE_HOME/.install/RoonBridge/start.sh ]] || die 'Roon Bridge extraction failed'
+  systemctl --user stop roonbridge-native.service 2>/dev/null || true
+  rm -rf "$BRIDGE_APP.old"
+  [[ ! -d $BRIDGE_APP ]] || mv "$BRIDGE_APP" "$BRIDGE_APP.old"
+  mv "$BRIDGE_HOME/.install/RoonBridge" "$BRIDGE_APP"
+  rmdir "$BRIDGE_HOME/.install"
+  cat > "$BRIDGE_SERVICE" <<EOF
+[Unit]
+Description=Roon Bridge native Linux endpoint
+After=network-online.target pipewire.service
+Wants=network-online.target
+
+[Service]
+Environment=ROON_DATAROOT=$BRIDGE_DATA
+Environment=ROON_ID_DIR=$BRIDGE_DATA
+ExecStart=$BRIDGE_APP/start.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+  systemctl --user daemon-reload
+  systemctl --user enable --now roonbridge-native.service
+  note 'native endpoint installed and started'
+}
+
+endpoint_command() {
+  case ${1:-status} in
+    install) endpoint_install ;;
+    start|stop|restart) systemctl --user "$1" roonbridge-native.service ;;
+    status) systemctl --user --no-pager status roonbridge-native.service ;;
+    *) die 'endpoint command must be install, start, stop, restart, or status' ;;
+  esac
 }
 
 user_service_state() {
@@ -236,6 +294,7 @@ doctor() {
   printf '%-20s %s\n' 'Pulse service' "$(user_service_state pipewire-pulse.service pulseaudio.service || true)"
   printf '%-20s %s\n' 'prefix' "$([[ -d $PREFIX ]] && echo present || echo missing)"
   printf '%-20s %s\n' 'Roon executable' "$(find_roon >/dev/null && echo present || echo missing)"
+  printf '%-20s %s\n' 'native endpoint' "$(systemctl --user is-active roonbridge-native.service 2>/dev/null || echo inactive)"
 
   if [[ $runner == proton ]]; then
     have umu-run || { printf 'WARN: umu-launcher is not installed\n' >&2; failures=1; }
@@ -273,6 +332,7 @@ main() {
     configure) configure_prefix ;;
     winecfg) open_winecfg ;;
     runtime) install_runtime ;;
+    endpoint) endpoint_command "${2:-status}" ;;
     doctor) doctor ;;
     set) shift; set_value "${1:-}" "${2:-}" ;;
     kill)
