@@ -86,8 +86,9 @@ roon-wine kill                 stop processes in the managed prefix
 The default `display=auto` uses XWayland with the pinned Proton runtime. Testing
 found that Proton 10 avoids Wine 11's Roon crash, while XWayland avoids Proton
 10's second-OpenGL-context failure on native Wayland. The native endpoint uses
-Roon Bridge with `pipewire-alsa`, keeping playback outside Wine's incomplete
-WASAPI format negotiation.
+Roon Bridge with direct ALSA hardware access, keeping playback outside Wine's
+incomplete WASAPI format negotiation. Direct access can temporarily reserve the
+device while Roon is playing; stop playback before another desktop app needs it.
 
 To make the desktop a Roon endpoint:
 

@@ -11,9 +11,12 @@ context. Wine/Proton 11 aborts in the unimplemented
 
 The Windows RAAT endpoint created PipeWire streams but advertised an empty
 WASAPI format set and rejected playback setup. The supported endpoint design is
-therefore the official native Linux Roon Bridge with `pipewire-alsa`. It started
-successfully as a user service and registered with Roon discovery. Final LAN
-playback confirmation requires UFW to allow the local Roon core to connect.
+therefore the official native Linux Roon Bridge. After the LAN firewall rule was
+enabled, the core discovered the `benji` bridge and its ALC295 analog codec.
+Playback was verified at PCM 48 kHz, 32-bit, stereo: RAAT completed setup,
+created the stream, opened `hw:CARD=Generic_1,DEV=0`, and reported `Playing`
+without underruns or errors. This path uses direct ALSA hardware access rather
+than a PipeWire sink input.
 
 ## 2026-07-10: packaging and virtual runtime
 
