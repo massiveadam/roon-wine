@@ -29,6 +29,6 @@ docker run --rm --interactive --platform linux/amd64 \
     su builder -c "cd /build && makepkg --nodeps --clean --cleanbuild --noconfirm"
     cd /build
     namcap PKGBUILD
-    namcap roon-wine-*.pkg.tar.zst
-    pacman -Qlp roon-wine-*.pkg.tar.zst
+    namcap roon-proton-*.pkg.tar.zst
+    pacman -Qlp roon-proton-*.pkg.tar.zst
   '

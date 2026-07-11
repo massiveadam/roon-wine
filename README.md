@@ -1,12 +1,16 @@
-# Roon on Arch Linux
+# Roon Proton for Arch Linux
 
 An Arch-oriented compatibility package for running the Windows Roon desktop app
 as both a **Roon Control** and a **local audio Output** on Linux. It uses a pinned
 GE-Proton runtime through UMU for the controller and Roon's native Linux Bridge
 for reliable endpoint playback, with system Wine as a diagnostic fallback.
 
+The package and primary command are named `roon-proton`. The legacy
+`roon-wine` command remains as a compatibility alias and uses the same existing
+configuration and prefix data.
+
 This project does not redistribute Roon. The installer is downloaded directly
-from Roon Labs when the user runs `roon-wine install`.
+from Roon Labs when the user runs `roon-proton install`.
 
 ## Status
 
@@ -39,9 +43,9 @@ not require this project to be published in the AUR.
 Then create the isolated Proton prefix and install Roon:
 
 ```sh
-roon-wine install
-roon-wine doctor
-roon-wine run
+roon-proton install
+roon-proton doctor
+roon-proton run
 ```
 
 After pulling or editing a newer checkout, rerun:
@@ -50,7 +54,7 @@ After pulling or editing a newer checkout, rerun:
 yay -Bi .
 ```
 
-Remove the packaged launcher with `yay -Rns roon-wine`. User data is deliberately
+Remove the packaged launcher with `yay -Rns roon-proton`. User data is deliberately
 left in `${XDG_DATA_HOME:-~/.local/share}/roon-wine`; remove that directory only
 when you intentionally want to discard the Roon prefix and its settings.
 
@@ -58,8 +62,8 @@ when you intentionally want to discard the Roon prefix and its settings.
 
 ```sh
 makepkg -si
-roon-wine install
-roon-wine run
+roon-proton install
+roon-proton run
 ```
 
 The prefix is stored in `${XDG_DATA_HOME:-~/.local/share}/roon-wine/prefix`.
@@ -68,20 +72,20 @@ Configuration is stored in `${XDG_CONFIG_HOME:-~/.config}/roon-wine/config`.
 ## Commands
 
 ```text
-roon-wine install              create or repair the prefix and install Roon
-roon-wine run                  launch Roon
-roon-wine doctor               report display, audio, Wine, and prefix state
-roon-wine configure            apply the configured display/audio backends
-roon-wine winecfg              open Wine configuration for the managed prefix
-roon-wine set display auto     auto, wayland, or xwayland
-roon-wine set audio pipewire   pipewire, pulse, or alsa
-roon-wine set scale 1.5        positive decimal scale factor
-roon-wine set runner proton    proton (default) or wine fallback
-roon-wine runtime              download and verify the pinned Proton runtime
-roon-wine endpoint install     install/start the native Linux audio endpoint
-roon-wine endpoint status      show endpoint service status
-roon-wine endpoint release     stop playback and release the ALSA device
-roon-wine kill                 stop processes in the managed prefix
+roon-proton install              create or repair the prefix and install Roon
+roon-proton run                  launch Roon
+roon-proton doctor               report display, audio, Wine, and prefix state
+roon-proton configure            apply the configured display/audio backends
+roon-proton winecfg              open Wine configuration for the managed prefix
+roon-proton set display auto     auto, wayland, or xwayland
+roon-proton set audio pipewire   pipewire, pulse, or alsa
+roon-proton set scale 1.5        positive decimal scale factor
+roon-proton set runner proton    proton (default) or wine fallback
+roon-proton runtime              download and verify the pinned Proton runtime
+roon-proton endpoint install     install/start the native Linux audio endpoint
+roon-proton endpoint status      show endpoint service status
+roon-proton endpoint release     stop playback and release the ALSA device
+roon-proton kill                 stop processes in the managed prefix
 ```
 
 The default `display=auto` uses XWayland with the pinned Proton runtime. Testing
@@ -94,14 +98,14 @@ device while Roon is playing; stop playback before another desktop app needs it.
 This dedicated path is the recommended audiophile mode: Roon talks to the native
 RAAT endpoint, which opens the hardware ALSA device without a desktop mixer or
 Wine audio layer. It is intentionally independent of the controller window and
-will not appear as a PipeWire media session. Use `roon-wine endpoint release` if
+will not appear as a PipeWire media session. Use `roon-proton endpoint release` if
 the controller has closed while the core is still playing or another app needs
 the device.
 
 To make the desktop a Roon endpoint:
 
 ```sh
-roon-wine endpoint install
+roon-proton endpoint install
 ```
 
 If UFW blocks discovery, allow only your trusted LAN (adjust the subnet):
@@ -115,7 +119,7 @@ conflict with PipeWire device ownership and is not assumed to provide exclusive
 or bit-perfect playback. Those properties must be verified in Roon's signal path
 and against the selected Linux device.
 
-With the fallback runner selected, use `roon-wine winecfg` after installation when manual Wine device, graphics,
+With the fallback runner selected, use `roon-proton winecfg` after installation when manual Wine device, graphics,
 desktop-integration, or library settings are needed. It always opens the prefix
 managed by this package rather than the user's default Wine prefix.
 
@@ -124,7 +128,7 @@ managed by this package rather than the user's default Wine prefix.
 The launcher pins and verifies GE-Proton 10 rather than following an untested
 `latest` release. The roughly 500 MiB runtime archive is cached under
 `${XDG_CACHE_HOME:-~/.cache}/roon-wine`; the extracted runtime and prefix live
-under `${XDG_DATA_HOME:-~/.local/share}/roon-wine`. `roon-wine set runner wine`
+under `${XDG_DATA_HOME:-~/.local/share}/roon-wine`. `roon-proton set runner wine`
 is available for diagnosis, but current Wine/Proton 11 aborts in Roon's volume
 enumeration because `wminet_utils.GetErrorInfo` is not implemented.
 
