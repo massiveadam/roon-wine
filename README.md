@@ -13,6 +13,44 @@ configuration and prefix data.
 This project does not redistribute Roon. The installer is downloaded directly
 from Roon Labs when the user runs `roon-proton install`.
 
+## Quick install — temporary GitHub method
+
+Until `roon-proton` is published in the AUR, this is the easiest fresh install
+on CachyOS or another Arch-based system with `yay`:
+
+```sh
+sudo pacman -S --needed git base-devel
+git clone --depth=1 https://github.com/massiveadam/roon-wine.git
+cd roon-wine
+yay -Bi --needed .
+
+sudo modprobe snd-aloop pcm_substreams=1
+roon-proton install
+roon-proton endpoint install
+roon-proton endpoint mode system
+roon-proton doctor
+roon-proton run
+```
+
+The package makes `snd-aloop` load automatically on future boots; the `modprobe`
+command only makes it available immediately after the first installation.
+
+When Roon opens, go to **Settings → Audio**, enable the first **Loopback PCM**,
+and name it **System Output (PipeWire)**. Leave the second Loopback PCM disabled.
+That is the only manual audio step. This zone follows the output selected by the
+Linux desktop, including speakers, wired headphones, USB audio, and Bluetooth.
+
+### Future AUR install
+
+Once the package is published, the temporary clone/build portion above becomes:
+
+```sh
+yay -S roon-proton
+```
+
+The remaining `modprobe`, `roon-proton install`, and endpoint setup commands stay
+the same. After a reboot, the one-time `modprobe` command is unnecessary.
+
 ## Security model
 
 The launcher and its user services never request root privileges. Pacman only
@@ -39,38 +77,20 @@ Early development. The initial target matrix is:
 - Sway and Hyprland
 - X11/XWayland fallback
 - PipeWire through `pipewire-pulse` (default)
-- PulseAudio
 - direct ALSA as an advanced compatibility mode
 
-Roon Server and Roon Bridge are deliberately out of scope: Roon provides native
-Linux builds for those components. This package manages only the desktop app.
+Roon Server is out of scope because Roon provides a native Linux build. This
+package manages the desktop controller and can install the official native Roon
+Bridge as the recommended local audio endpoint.
 
-## Install from this checkout with yay
+## Updating or removing the temporary install
 
-From the project directory:
+Update from the GitHub checkout with:
 
 ```sh
-git clone https://github.com/massiveadam/roon-wine.git
 cd roon-wine
+git pull --ff-only
 yay -Bi --needed .
-```
-
-This asks `yay` to build the local `PKGBUILD`, resolve dependencies (including
-AUR dependencies), and install the resulting package through `pacman`. It does
-not require this project to be published in the AUR.
-
-Then create the isolated Proton prefix and install Roon:
-
-```sh
-roon-proton install
-roon-proton doctor
-roon-proton run
-```
-
-After pulling or editing a newer checkout, rerun:
-
-```sh
-yay -Bi .
 ```
 
 Remove the packaged launcher with `yay -Rns roon-proton`. User data is deliberately
