@@ -227,6 +227,13 @@ If Roon replaces one of its mutable download URLs, installation stops safely
 until the package maintainer reviews the new artifact and publishes updated
 hashes.
 
+Arch currently ships UMU 1.4.0, whose command-launcher service can end the Roon
+process as soon as the launcher returns. The package includes a narrow 1.4.0
+compatibility runner that disables that service, matching upstream UMU 1.4.1's
+default behavior. The current Roon NSIS bootstrapper also crashes under Proton;
+the package therefore extracts its bundled 64-bit controller directly after
+verifying the complete upstream installer against the pinned SHA-512 hash.
+
 ## Development
 
 Run the static checks with:

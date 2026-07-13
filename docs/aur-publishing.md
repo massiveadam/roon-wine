@@ -22,12 +22,12 @@ history stay clean:
 git -c init.defaultbranch=master clone \
   ssh://aur@aur.archlinux.org/roon-proton.git ~/aur/roon-proton
 cd ~/aur/roon-proton
-cp ~/roon-wine/{PKGBUILD,.SRCINFO,roon-proton.install,roon-wine,roon-wine.desktop,roon-system-output.service,90-roon-loopback.conf,roon-proton.modules-load.conf,roon-proton.modprobe.conf,LICENSE} .
+cp ~/roon-wine/{PKGBUILD,.SRCINFO,roon-proton.install,roon-wine,roon-wine.desktop,roon-umu-run,roon-system-output.service,90-roon-loopback.conf,roon-proton.modules-load.conf,roon-proton.modprobe.conf,LICENSE} .
 cp ~/roon-wine/roon-proton.{niri.kdl,hyprland.conf,hyprland.lua} .
-git add PKGBUILD .SRCINFO roon-proton.install roon-wine roon-wine.desktop roon-system-output.service \
+git add PKGBUILD .SRCINFO roon-proton.install roon-wine roon-wine.desktop roon-umu-run roon-system-output.service \
   90-roon-loopback.conf roon-proton.modules-load.conf roon-proton.modprobe.conf \
   roon-proton.* LICENSE
-git commit -m 'Initial import: roon-proton 0.2.0-3'
+git commit -m 'Initial import: roon-proton 0.2.0-4'
 git push origin master
 ```
 
