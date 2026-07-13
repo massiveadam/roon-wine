@@ -15,21 +15,45 @@ from Roon Labs when the user runs `roon-proton install`.
 
 ## Quick install from the AUR
 
-On CachyOS or another Arch-based system with `yay`, install the package and set
-up the recommended desktop-following audio route with:
+`umu-launcher` is in Arch's `multilib` repository. CachyOS normally enables it,
+but a fresh plain-Arch installation may not. If `yay` reports that
+`umu-launcher` cannot be found, uncomment these two lines in `/etc/pacman.conf`
+and run `sudo pacman -Syu` before continuing:
+
+```ini
+[multilib]
+Include = /etc/pacman.d/mirrorlist
+```
+
+On a minimal Arch installation, pacman may also ask which Vulkan providers to
+install for UMU. Select the entries matching the actual GPU—typically
+`vulkan-radeon`/`lib32-vulkan-radeon` for AMD,
+`vulkan-intel`/`lib32-vulkan-intel` for Intel, or the matching NVIDIA packages.
+Do not blindly accept the first provider, which may target different hardware.
+
+On a PipeWire desktop, install the package and run the automated setup with:
 
 ```sh
 yay -S roon-proton
 sudo modprobe snd-aloop pcm_substreams=1
-roon-proton install
-roon-proton endpoint install
-roon-proton endpoint mode system
-roon-proton doctor
-roon-proton run
+roon-proton setup
 ```
 
 The package makes `snd-aloop` load automatically on future boots; the `modprobe`
-command only makes it available immediately after the first installation.
+command only makes it available immediately after the first installation. After
+a reboot, only `roon-proton setup` is needed. That command installs Roon in the
+user account, configures the recommended endpoint, and launches the controller.
+
+For a controller-only installation, a PulseAudio desktop, or a system without
+systemd user services, use `roon-proton setup desktop`. This package does not
+silently replace PulseAudio with PipeWire. The desktop-following System Output
+mode requires the optional `pipewire-audio`, `pipewire-pulse`, and `wireplumber`
+packages; install them deliberately if the system does not already use them.
+
+Pacman cannot safely perform the per-user setup itself: package install hooks run
+as root, while the proprietary Roon download, prefix, services, and GUI belong to
+the logged-in desktop user. Keeping that boundary also prevents the AUR package
+from redistributing Roon.
 
 When Roon opens, go to **Settings → Audio**, enable the first **Loopback PCM**,
 and name it **System Output (PipeWire)**. Leave the second Loopback PCM disabled.
@@ -50,8 +74,8 @@ cd roon-wine
 yay -Bi --needed .
 ```
 
-Then continue with the `modprobe`, `roon-proton install`, and endpoint commands
-from the main installation block above.
+Then continue with `modprobe` and `roon-proton setup` from the main installation
+block above.
 
 ## Security model
 
@@ -71,15 +95,34 @@ sandbox. Roon's own subsequent auto-updates are controlled by Roon Labs rather
 than this package. Users requiring isolation should run Roon under a separately
 tested sandbox or dedicated user account.
 
-## Status
+## Compatibility status
 
-Early development. The initial target matrix is:
+The current evidence and remaining gaps are:
 
-- GNOME and KDE Plasma on Wayland
-- Sway and Hyprland
-- X11/XWayland fallback
-- PipeWire through `pipewire-pulse` (default)
-- direct ALSA as an advanced compatibility mode
+- **CachyOS, Niri, Wayland + XWayland:** live-tested controller, tiling, and
+  PipeWire System Output on the Framework laptop.
+- **Plain Arch x86_64:** the complete dependency transaction, clean package
+  build, package install, UMU 1.4.0 compatibility path, and CLI diagnostics are
+  tested in a current Arch container with `multilib` enabled. A container cannot
+  validate a real GPU, compositor, Bluetooth device, or sound card.
+- **Traditional X11:** selected automatically when `XDG_SESSION_TYPE=x11`; the
+  environment and failure paths are tested, but the Roon UI has not yet been
+  live-tested in a real X11 login.
+- **GNOME, KDE Plasma, Sway, and Hyprland:** expected to use the same XWayland
+  controller path. Niri and Hyprland rules are included; only Niri has been
+  live-tested. Other compositors use their normal window behavior.
+- **EndeavourOS and Garuda:** expected to follow the plain-Arch requirements,
+  including `multilib`, but are not yet live-tested.
+- **Manjaro:** best-effort only. Its repositories can lag Arch; the package now
+  requires UMU 1.4.0 or newer rather than accepting an untested older launcher.
+- **Artix/non-systemd:** controller-only mode is the supported path. The native
+  endpoint automation uses systemd user services and now exits with a clear
+  explanation instead of failing midway.
+- **PulseAudio-only systems:** controller-only mode is supported without forcing
+  an audio-stack replacement. PipeWire System Output is unavailable until the
+  user deliberately migrates to PipeWire.
+- **Forced native Wayland:** experimental. The tested Proton build fails Roon's
+  second OpenGL context there, so `auto` deliberately chooses XWayland.
 
 Roon Server is out of scope because Roon provides a native Linux build. This
 package manages the desktop controller and can install the official native Roon
@@ -119,6 +162,7 @@ Configuration is stored in `${XDG_CONFIG_HOME:-~/.config}/roon-wine/config`.
 ## Commands
 
 ```text
+roon-proton setup [system|desktop|direct] install, configure, and launch Roon
 roon-proton install              create or repair the prefix and install Roon
 roon-proton run                  launch Roon
 roon-proton doctor               report display, audio, Wine, and prefix state
@@ -249,9 +293,10 @@ disposable container:
 make check-arch
 ```
 
-The container intentionally validates packaging without installing Wine. A full
-Roon test requires an x86_64 Linux VM with a graphical Wayland session and audio
-devices; containers cannot faithfully exercise that path on macOS.
+The container enables Arch `multilib`, resolves every hard dependency, builds
+and installs the package, and runs its CLI smoke test without installing system
+Wine. A full Roon test requires an x86_64 Linux VM with a graphical desktop and
+audio devices; containers cannot faithfully exercise that path.
 
 On the development Mac, the dedicated Colima runtime is stored under
 `/Volumes/NVMe/Roon Arch Linux Test`. The test automatically uses that runtime
