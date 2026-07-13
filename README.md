@@ -13,6 +13,24 @@ configuration and prefix data.
 This project does not redistribute Roon. The installer is downloaded directly
 from Roon Labs when the user runs `roon-proton install`.
 
+## Security model
+
+The launcher and its user services never request root privileges. Pacman only
+installs the package-owned launcher, display rules, PipeWire configuration, and
+the `snd-aloop` module-load setting. Configuration files are parsed as data and
+are never sourced or evaluated as shell code.
+
+The Proton runtime, Roon installer, and Roon Bridge archive are restricted to
+HTTPS and verified against package-pinned SHA-512 hashes before execution or
+extraction. The pinned Windows installer was also checked for its Harman
+International Authenticode signature when the package hash was updated.
+
+Roon and Roon Bridge remain proprietary network applications running with the
+desktop user's permissions; Wine/Proton is a compatibility layer, not a security
+sandbox. Roon's own subsequent auto-updates are controlled by Roon Labs rather
+than this package. Users requiring isolation should run Roon under a separately
+tested sandbox or dedicated user account.
+
 ## Status
 
 Early development. The initial target matrix is:
@@ -78,7 +96,7 @@ roon-proton run                  launch Roon
 roon-proton doctor               report display, audio, Wine, and prefix state
 roon-proton configure            apply the configured display/audio backends
 roon-proton winecfg              open Wine configuration for the managed prefix
-roon-proton set display auto     auto, wayland, or xwayland
+roon-proton set display auto     auto, wayland, x11, or xwayland
 roon-proton set audio pipewire   pipewire, pulse, or alsa
 roon-proton set scale 1.5        positive decimal scale factor
 roon-proton set runner proton    proton (default) or wine fallback
@@ -94,7 +112,9 @@ roon-proton kill                 stop processes in the managed prefix
 
 The default `display=auto` uses XWayland with the pinned Proton runtime. Testing
 found that Proton 10 avoids Wine 11's Roon crash, while XWayland avoids Proton
-10's second-OpenGL-context failure on native Wayland.
+10's second-OpenGL-context failure on native Wayland. In a traditional X11
+session, `auto` uses X11 directly. Forced Wayland and X11/XWayland modes fail
+with a clear diagnostic when their required display socket is unavailable.
 
 For normal laptop use, install the native endpoint and activate system mode:
 
@@ -172,8 +192,12 @@ The launcher pins and verifies GE-Proton 10 rather than following an untested
 `latest` release. The roughly 500 MiB runtime archive is cached under
 `${XDG_CACHE_HOME:-~/.cache}/roon-wine`; the extracted runtime and prefix live
 under `${XDG_DATA_HOME:-~/.local/share}/roon-wine`. `roon-proton set runner wine`
-is available for diagnosis, but current Wine/Proton 11 aborts in Roon's volume
-enumeration because `wminet_utils.GetErrorInfo` is not implemented.
+is available for diagnosis. The launcher disables Wine's incomplete
+`wminet_utils` helper, but the pinned Proton path remains the tested default.
+
+If Roon replaces one of its mutable download URLs, installation stops safely
+until the package maintainer reviews the new artifact and publishes updated
+hashes.
 
 ## Development
 

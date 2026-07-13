@@ -1,19 +1,21 @@
 # Maintainer: massiveadam <51133980+massiveadam at users dot noreply dot github dot com>
 pkgname=roon-proton
 pkgver=0.2.0
-pkgrel=2
+pkgrel=3
 pkgdesc='Roon desktop controller and native audio endpoint for Arch Linux'
 arch=('x86_64')
 url='https://github.com/massiveadam/roon-wine'
 license=('MIT')
 depends=(
   'alsa-lib'
-  'alsa-utils'
   'bash'
   'curl'
   'libpulse'
   'pipewire-audio'
+  'pipewire-pulse'
+  'psmisc'
   'umu-launcher'
+  'wireplumber'
   'xorg-xwayland'
 )
 provides=("roon-wine=$pkgver")
@@ -22,8 +24,6 @@ install='roon-proton.install'
 optdepends=(
   'wine: system Wine fallback runner'
   'winetricks: runtime setup for the system Wine fallback'
-  'pipewire-pulse: recommended audio backend for PipeWire desktops'
-  'pulseaudio: PulseAudio backend'
   'vulkan-icd-loader: accelerated rendering'
 )
 source=(
@@ -38,7 +38,7 @@ source=(
   'roon-proton.modprobe.conf'
   'LICENSE'
 )
-sha256sums=('b9b9918a9411fc0bd9109519be2c46cf76a9cf0ca9bd3965656b007064e520af'
+sha256sums=('80d031234c3a385b3c8eabfd6f987bb2b1e07a85ee8921e242a7f7164463aa8b'
             '300b9418ac741675a91fda59670456738f4d6d5693a4cc7899138b94425acd26'
             'aab5a24dff98029cbb17a40c27af62b14a114c58d1e398b02a02b4404b8af528'
             'fa0808ac99a1ecb1180c672cd634fd561e4c377029ca7cff0920bddc71e42778'

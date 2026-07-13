@@ -12,9 +12,11 @@ The Windows desktop app provides two roles inside one managed Wine prefix:
 
 ## Display path
 
-`auto` prefers Wine's native Wayland driver in a Wayland session. The launcher
-unsets `DISPLAY` when starting native Wayland because Wine otherwise prefers its
-X11 driver. `xwayland` remains the compatibility fallback.
+With Proton, `auto` uses XWayland in a Wayland session because Roon's second GL
+context is not reliable with Proton's native Wayland driver. In a traditional
+X11 session, `auto` uses X11 directly. The Wine fallback may use native Wayland
+when supported; the launcher unsets `DISPLAY` so Wine does not select X11.
+Explicit modes validate that their required display socket is available.
 
 ## Audio paths
 
