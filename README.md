@@ -13,17 +13,13 @@ configuration and prefix data.
 This project does not redistribute Roon. The installer is downloaded directly
 from Roon Labs when the user runs `roon-proton install`.
 
-## Quick install — temporary GitHub method
+## Quick install from the AUR
 
-Until `roon-proton` is published in the AUR, this is the easiest fresh install
-on CachyOS or another Arch-based system with `yay`:
+On CachyOS or another Arch-based system with `yay`, install the package and set
+up the recommended desktop-following audio route with:
 
 ```sh
-sudo pacman -S --needed git base-devel
-git clone --depth=1 https://github.com/massiveadam/roon-wine.git
-cd roon-wine
-yay -Bi --needed .
-
+yay -S roon-proton
 sudo modprobe snd-aloop pcm_substreams=1
 roon-proton install
 roon-proton endpoint install
@@ -40,16 +36,22 @@ and name it **System Output (PipeWire)**. Leave the second Loopback PCM disabled
 That is the only manual audio step. This zone follows the output selected by the
 Linux desktop, including speakers, wired headphones, USB audio, and Bluetooth.
 
-### Future AUR install
+Package page: [AUR — roon-proton](https://aur.archlinux.org/packages/roon-proton)
 
-Once the package is published, the temporary clone/build portion above becomes:
+### Temporary GitHub fallback
+
+If the new package has not reached your AUR helper's search index yet, build the
+same package directly from its GitHub checkout:
 
 ```sh
-yay -S roon-proton
+sudo pacman -S --needed git base-devel
+git clone --depth=1 https://github.com/massiveadam/roon-wine.git
+cd roon-wine
+yay -Bi --needed .
 ```
 
-The remaining `modprobe`, `roon-proton install`, and endpoint setup commands stay
-the same. After a reboot, the one-time `modprobe` command is unnecessary.
+Then continue with the `modprobe`, `roon-proton install`, and endpoint commands
+from the main installation block above.
 
 ## Security model
 
@@ -83,9 +85,15 @@ Roon Server is out of scope because Roon provides a native Linux build. This
 package manages the desktop controller and can install the official native Roon
 Bridge as the recommended local audio endpoint.
 
-## Updating or removing the temporary install
+## Updating or removing
 
-Update from the GitHub checkout with:
+An AUR installation updates normally through `yay`:
+
+```sh
+yay -Syu
+```
+
+If you used the temporary GitHub checkout, update it with:
 
 ```sh
 cd roon-wine
