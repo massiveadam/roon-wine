@@ -2,8 +2,9 @@
 
 An Arch-oriented compatibility package for running the Windows Roon desktop app
 as both a **Roon Control** and a **local audio Output** on Linux. It uses a pinned
-GE-Proton runtime through UMU for the controller and Roon's native Linux Bridge
-for reliable endpoint playback, with system Wine as a diagnostic fallback.
+GE-Proton runtime through UMU for the controller. The recommended laptop output
+uses native Roon Bridge, an ALSA loopback, and PipeWire so playback follows the
+desktop's currently selected speakers, headphones, USB DAC, or Bluetooth sink.
 
 The package and primary command are named `roon-proton`. The legacy
 `roon-wine` command remains as a compatibility alias and uses the same existing
@@ -82,31 +83,73 @@ roon-proton set audio pipewire   pipewire, pulse, or alsa
 roon-proton set scale 1.5        positive decimal scale factor
 roon-proton set runner proton    proton (default) or wine fallback
 roon-proton runtime              download and verify the pinned Proton runtime
-roon-proton endpoint install     install/start the native Linux audio endpoint
+roon-proton endpoint install     install the optional native Linux endpoint
 roon-proton endpoint status      show endpoint service status
 roon-proton endpoint release     stop playback and release the ALSA device
+roon-proton endpoint mode desktop use Wine System Output through PipeWire
+roon-proton endpoint mode system  use System Output (PipeWire) (recommended)
+roon-proton endpoint mode direct  enable native Bridge for direct ALSA devices
 roon-proton kill                 stop processes in the managed prefix
 ```
 
 The default `display=auto` uses XWayland with the pinned Proton runtime. Testing
 found that Proton 10 avoids Wine 11's Roon crash, while XWayland avoids Proton
-10's second-OpenGL-context failure on native Wayland. The native endpoint uses
-Roon Bridge with direct ALSA hardware access, keeping playback outside Wine's
-incomplete WASAPI format negotiation. Direct access can temporarily reserve the
-device while Roon is playing; stop playback before another desktop app needs it.
+10's second-OpenGL-context failure on native Wayland.
 
-This dedicated path is the recommended audiophile mode: Roon talks to the native
+For normal laptop use, install the native endpoint and activate system mode:
+
+```sh
+roon-proton endpoint install
+roon-proton endpoint mode system
+```
+
+Then enable the first **Loopback PCM** device in Roon Settings > Audio, name it
+**System Output (PipeWire)**, and use it as the laptop zone. The route is:
+
+```text
+Roon Core -> native Roon Bridge -> snd-aloop DEV=0
+          -> adaptive PipeWire capture -> WirePlumber default output
+```
+
+It follows the currently selected laptop speakers, wired headphones, USB audio,
+or Bluetooth device and appears in normal PipeWire media and volume controls.
+The package loads `snd-aloop` at boot and pins the bridge to 48 kHz stereo with
+clock-adaptive resampling to prevent drift and dropouts.
+
+For a clean zone picker, leave only **System Output (PipeWire)** enabled for this computer.
+Disable the second Loopback PCM, Wine **System Output**, direct laptop audio,
+and unused HDMI devices in Roon Settings > Audio. Roon will still list those
+ALSA devices on the Settings page because it discovers host hardware itself;
+disabled devices do not appear as playback zones. The second loopback device
+cannot safely be hidden at the system level because it is the capture half of
+the paired virtual audio device used by this route.
+
+`endpoint mode desktop` retains the Wine `System Output` path as a compatibility
+option. Some Wine/Proton combinations reject ordinary PCM formats on that path.
+
+Native Roon Bridge enumerates kernel ALSA `hw:` devices, not this host's
+`pipewire` or `default` ALSA plugin PCMs. It therefore bypasses WirePlumber,
+does not follow the desktop output, and can reserve the device while playing.
+
+In optional direct mode, Roon talks to the native
 RAAT endpoint, which opens the hardware ALSA device without a desktop mixer or
 Wine audio layer. It is intentionally independent of the controller window and
 will not appear as a PipeWire media session. Use `roon-proton endpoint release` if
 the controller has closed while the core is still playing or another app needs
 the device.
 
-To make the desktop a Roon endpoint:
+To install and activate the optional direct endpoint:
 
 ```sh
 roon-proton endpoint install
+roon-proton endpoint mode direct
 ```
+
+The desktop, system, and direct modes are mutually exclusive in one user session. Both
+components use the same RAATServer rendezvous; when native Bridge is running,
+the Windows controller can connect to it instead of starting its own local
+output server. Switch back with `roon-proton endpoint mode desktop`, then relaunch
+Roon.
 
 If UFW blocks discovery, allow only your trusted LAN (adjust the subnet):
 

@@ -50,10 +50,13 @@ Commands:
   set scale FACTOR         Positive decimal UI scale
   set runner RUNNER        RUNNER: proton (default), wine
   runtime                  Install/verify the pinned Proton runtime
-  endpoint install         Install/start the native Linux audio endpoint
+  endpoint install         Install the optional direct Linux audio endpoint
   endpoint start|stop      Control the native audio endpoint
   endpoint status          Show native endpoint service status
   endpoint release         Stop playback and release the ALSA device
+  endpoint mode desktop    Use Wine System Output through PipeWire
+  endpoint mode system     Use native Bridge through the PipeWire default
+  endpoint mode direct     Use native Bridge with exclusive/direct ALSA
   kill                     Stop Wine processes in the managed prefix
   help                     Show this help
 EOF
@@ -107,8 +110,12 @@ proton_cmd() {
   fi
   local wayland=0
   [[ $(selected_display) == wayland ]] && wayland=1
+  # Wine's wminet_utils implementation is incomplete and can abort current
+  # Roon builds. Roon tolerates the optional WMI helper being unavailable.
+  local overrides='wminet_utils=d'
+  [[ -n ${WINEDLLOVERRIDES:-} ]] && overrides="$WINEDLLOVERRIDES;$overrides"
   env WINEPREFIX="$PREFIX" GAMEID=0 PROTONPATH="$PROTON_PATH" \
-    PROTON_ENABLE_WAYLAND="$wayland" WINEDLLOVERRIDES="${WINEDLLOVERRIDES:-}" umu-run "$@"
+    PROTON_ENABLE_WAYLAND="$wayland" WINEDLLOVERRIDES="$overrides" umu-run "$@"
 }
 
 runner_cmd() {
@@ -169,20 +176,45 @@ RestartSec=5
 WantedBy=default.target
 EOF
   systemctl --user daemon-reload
-  systemctl --user enable --now roonbridge-native.service
-  note 'native endpoint installed and started'
+  systemctl --user disable --now roonbridge-native.service
+  note 'native endpoint installed but left disabled'
+  note "use 'roon-proton endpoint mode system' for desktop-following audio"
 }
 
 endpoint_command() {
   case ${1:-status} in
     install) endpoint_install ;;
     start|stop|restart) systemctl --user "$1" roonbridge-native.service ;;
+    mode)
+      case ${2:-} in
+        desktop)
+          systemctl --user disable --now roonbridge-native.service roon-system-output.service 2>/dev/null || true
+          note 'desktop mode active: relaunch Roon, then enable System Output in Settings > Audio'
+          note 'audio will follow the current PipeWire/WirePlumber output'
+          ;;
+        system)
+          [[ -f $BRIDGE_SERVICE ]] || die "native endpoint is not installed; run 'roon-proton endpoint install'"
+          [[ -d /sys/module/snd_aloop ]] || die 'snd-aloop is not loaded; run: sudo modprobe snd-aloop pcm_substreams=1'
+          systemctl --user enable --now roon-system-output.service roonbridge-native.service
+          note 'system-output mode active'
+          note 'in Roon, enable the first Loopback PCM and name it System Output (PipeWire)'
+          note 'leave the second Loopback PCM disabled; PipeWire chooses the physical output'
+          ;;
+        direct)
+          [[ -f $BRIDGE_SERVICE ]] || die "native endpoint is not installed; run 'roon-proton endpoint install'"
+          systemctl --user disable --now roon-system-output.service 2>/dev/null || true
+          systemctl --user enable --now roonbridge-native.service
+          note 'exclusive/direct ALSA mode active; relaunch Roon before selecting the direct endpoint'
+          ;;
+        *) die 'endpoint mode must be desktop, system, or direct' ;;
+      esac
+      ;;
     release)
       systemctl --user restart roonbridge-native.service
       note 'stopped endpoint playback and released the ALSA device'
       ;;
     status) systemctl --user --no-pager status roonbridge-native.service ;;
-    *) die 'endpoint command must be install, start, stop, restart, release, or status' ;;
+    *) die 'endpoint command must be install, start, stop, restart, release, status, or mode' ;;
   esac
 }
 
@@ -206,7 +238,7 @@ user_service_state() {
 }
 
 configure_prefix() {
-  [[ -d $PREFIX ]] || die "prefix does not exist; run 'roon-wine install' first"
+  [[ -d $PREFIX ]] || die "prefix does not exist; run 'roon-proton install' first"
   local selected
   selected=$(selected_display)
   if [[ $selected == wayland ]]; then
@@ -225,9 +257,9 @@ configure_prefix() {
 }
 
 open_winecfg() {
-  [[ $runner == wine ]] || die "winecfg is only available with 'roon-wine set runner wine'"
+  [[ $runner == wine ]] || die "winecfg is only available with 'roon-proton set runner wine'"
   have winecfg || die 'winecfg is required'
-  [[ -d $PREFIX ]] || die "prefix does not exist; run 'roon-wine install' first"
+  [[ -d $PREFIX ]] || die "prefix does not exist; run 'roon-proton install' first"
   local selected
   selected=$(selected_display)
   note "opening Wine configuration with display=$selected"
@@ -276,7 +308,7 @@ install_roon() {
 
 run_roon() {
   local exe selected
-  exe=$(find_roon) || die "Roon is not installed; run 'roon-wine install'"
+  exe=$(find_roon) || die "Roon is not installed; run 'roon-proton install'"
   selected=$(selected_display)
   [[ $runner == wine ]] && configure_prefix
   note "launching Roon with display=$selected audio=$audio scale=$scale"
@@ -315,7 +347,13 @@ doctor() {
   printf '%-20s %s\n' 'prefix' "$([[ -d $PREFIX ]] && echo present || echo missing)"
   printf '%-20s %s\n' 'Roon executable' "$(find_roon >/dev/null && echo present || echo missing)"
   printf '%-20s %s\n' 'native endpoint' "$(systemctl --user is-active roonbridge-native.service 2>/dev/null || echo inactive)"
-  printf '%-20s %s\n' 'endpoint path' 'native RAAT -> direct ALSA (dedicated)'
+  if systemctl --user is-active --quiet roon-system-output.service 2>/dev/null; then
+    printf '%-20s %s\n' 'endpoint mode' 'System Output (PipeWire) via first Loopback PCM'
+  elif systemctl --user is-active --quiet roonbridge-native.service 2>/dev/null; then
+    printf '%-20s %s\n' 'endpoint mode' 'exclusive/direct ALSA'
+  else
+    printf '%-20s %s\n' 'endpoint mode' 'desktop System Output -> PipeWire'
+  fi
   printf '%-20s %s\n' 'ALSA device' "$(alsa_owner)"
 
   if [[ $runner == proton ]]; then
@@ -354,7 +392,7 @@ main() {
     configure) configure_prefix ;;
     winecfg) open_winecfg ;;
     runtime) install_runtime ;;
-    endpoint) endpoint_command "${2:-status}" ;;
+    endpoint) endpoint_command "${2:-status}" "${3:-}" ;;
     doctor) doctor ;;
     set) shift; set_value "${1:-}" "${2:-}" ;;
     kill)
