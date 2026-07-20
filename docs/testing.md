@@ -1,5 +1,21 @@
 # Compatibility testing
 
+## 2026-07-20: RAAT discovery recovery and endpoint handoff
+
+On the `benji` Arch laptop, neither native Bridge nor the Proton-hosted Windows
+RAATServer appeared in Roon while existing network zones remained usable. A
+restart of the official Roon Server container on `sanchez` restored discovery,
+which identifies stale Core-side RAAT discovery state rather than MassiveEQ or
+the laptop audio route as the original outage.
+
+A separate mode-transition defect was reproduced: if the Windows RAATServer
+already owned the shared rendezvous, `roonbridge-native.service` could be active
+without a native RAATServer child. The corrected transition stops all managed
+UMU/Proton launchers, drains the Wine prefix, and then restarts native Bridge.
+The live verification left one controller launcher and one native RAATServer.
+The Core connected over LAN and Tailscale, enumerated and enabled Loopback PCM,
+then completed setup and playback start at PCM 48 kHz, 32-bit, stereo.
+
 ## 2026-07-10: native Wayland hardware
 
 On an x86_64 CachyOS/Arch laptop running Niri and PipeWire, Roon build 1671

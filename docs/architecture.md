@@ -55,9 +55,12 @@ Roon Core -> native Roon Bridge/RAATServer -> ALSA hw: device
 
 Native Bridge does not expose this host's ALSA `pipewire`/`default` plugin as a
 RAAT endpoint. It is an explicit exclusive/direct mode for fixed hardware, not
-the desktop default. Do not run it alongside the Wine local endpoint: the two
-components share a RAATServer rendezvous and the controller can attach to the
-native server instead of starting its own local-output server.
+the desktop default. The native and Windows endpoints share a RAATServer
+rendezvous, so mode transitions stop the managed prefix and restart native
+Bridge before the controller is relaunched. The stop includes the UMU/Proton
+launcher processes so they cannot recreate the Windows RAATServer during the
+handoff. Without that ordering, Bridge can appear active while attached to the
+Windows RAATServer instead of owning its own native RAATServer child.
 
 ## Test matrix
 

@@ -237,11 +237,13 @@ roon-proton endpoint install
 roon-proton endpoint mode direct
 ```
 
-The desktop, system, and direct modes are mutually exclusive in one user session. Both
-components use the same RAATServer rendezvous; when native Bridge is running,
-the Windows controller can connect to it instead of starting its own local
-output server. Switch back with `roon-proton endpoint mode desktop`, then relaunch
-Roon.
+The desktop, system, and direct modes are mutually exclusive in one user session.
+Both components use the same RAATServer rendezvous. Switching to system or direct
+mode stops the managed Roon session and its Proton launcher, starts native Bridge
+first, and requires a Roon relaunch. This ordering prevents the Windows
+local-output server from owning the rendezvous while native Bridge appears
+healthy but has no RAATServer child.
+Switch back with `roon-proton endpoint mode desktop`, then relaunch Roon.
 
 If UFW blocks discovery, allow only your trusted LAN (adjust the subnet):
 
