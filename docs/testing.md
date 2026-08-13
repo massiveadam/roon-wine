@@ -15,6 +15,12 @@ channels connected to `MassiveEQ — Filbert`, and logged no PipeWire or
 WirePlumber errors. A regression test verifies the settings transformation and
 the endpoint transition order.
 
+Release 0.2.0-10 adds automatic upgrade migration. A normal controller launch
+detects the enabled legacy relay link, performs the same system-mode transition
+before starting Roon, and removes the marker so later launches do not repeat it.
+The migration does not run without that marker, which preserves controller-only
+and direct-mode setups.
+
 ## 2026-08-13: Roon controller update under Proton
 
 Roon build 1671 successfully checked for build 1683 and downloaded its Windows

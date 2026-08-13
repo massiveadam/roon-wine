@@ -2,6 +2,7 @@
 
 check:
 	@bash -n roon-wine
+	@./tests/automatic-system-output-migration.sh
 	@./tests/display-matrix.sh
 	@./tests/endpoint-mode-order.sh
 	@./tests/pipewire-endpoint-config.sh

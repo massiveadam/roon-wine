@@ -62,6 +62,19 @@ Linux desktop, including speakers, wired headphones, USB audio, and Bluetooth.
 
 Package page: [AUR — roon-proton](https://aur.archlinux.org/packages/roon-proton)
 
+### Upgrading from 0.2.0-9 or earlier
+
+Update the AUR package and launch Roon normally:
+
+```sh
+yay -S roon-proton
+```
+
+The first launch detects the old enabled System Output relay, changes that
+zone to shared PipeWire output, and removes the obsolete relay service. The
+migration runs once. Controller-only and direct-mode installations are left
+unchanged.
+
 ### Temporary GitHub fallback
 
 If the new package has not reached your AUR helper's search index yet, build the
