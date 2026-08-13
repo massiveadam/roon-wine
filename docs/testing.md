@@ -1,5 +1,20 @@
 # Compatibility testing
 
+## 2026-08-13: variable-rate PipeWire endpoint playback
+
+The former system-output route kept the capture half of `snd-aloop` open at
+48 kHz. Roon then tried to open the playback half for a 44.1 kHz/16-bit track,
+and ALSA rejected `snd_pcm_hw_params_set_rate` with `EINVAL`; RAAT returned
+`FORMAT_NOT_SUPPORTED` before playback could start.
+
+Package release 0.2.0-9 keeps the first Loopback PCM as the stable Roon zone
+identity but rewrites its saved output to `plug:pipewire` with software volume.
+Live verification on `benji` completed setup, buffering, and playback for PCM
+44.1 kHz/16-bit stereo. PipeWire exposed the active `mono-sgen` stream with both
+channels connected to `MassiveEQ — Filbert`, and logged no PipeWire or
+WirePlumber errors. A regression test verifies the settings transformation and
+the endpoint transition order.
+
 ## 2026-08-13: Roon controller update under Proton
 
 Roon build 1671 successfully checked for build 1683 and downloaded its Windows
@@ -96,6 +111,6 @@ Confirm all of the following before declaring a release stable:
 1. Roon renders with correct colors and scaling.
 2. Roon discovers and connects to the server.
 3. The Linux desktop appears as an audio zone.
-4. Playback succeeds through `pipewire-pulse`.
+4. Playback succeeds through the native endpoint's `plug:pipewire` output.
 5. The Roon signal path and PipeWire device route match expectations.
 6. Native Wayland and XWayland fallback both launch.

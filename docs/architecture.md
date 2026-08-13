@@ -23,18 +23,15 @@ Explicit modes validate that their required display socket is available.
 The recommended desktop-following route is:
 
 ```text
-Roon Core -> native Bridge -> snd-aloop playback DEV=0
-  -> PipeWire ALSA capture hw:Loopback,1 -> adaptive pw-loopback
-  -> WirePlumber default sink
+Roon Core -> native Bridge -> ALSA plug:pipewire
+  -> PipeWire -> filters and the desktop default sink
 ```
 
 Roon initially discovers the playback side as the first `Loopback PCM`. Users
-enable that device and name it **System Output (PipeWire)**. The capture half
-remains disabled as a Roon zone, but must remain present for PipeWire routing.
-
-The paired loopback sides intentionally use different ALSA device numbers.
-PipeWire's clock-adaptive loopback compensates for drift between the virtual
-ALSA clock and the physical or Bluetooth output clock.
+enable that device and name it **System Output (PipeWire)**. System mode keeps
+its Roon identity and rewrites the saved RAAT output to `plug:pipewire` with
+software volume. The loopback card is therefore only a stable discoverable
+identity; audio does not traverse its fixed-format virtual cable.
 
 The Wine compatibility route is:
 
@@ -53,9 +50,10 @@ The optional native Bridge route is:
 Roon Core -> native Roon Bridge/RAATServer -> ALSA hw: device
 ```
 
-Native Bridge does not expose this host's ALSA `pipewire`/`default` plugin as a
-RAAT endpoint. It is an explicit exclusive/direct mode for fixed hardware, not
-the desktop default. The native and Windows endpoints share a RAATServer
+Native Bridge does not list this host's ALSA `pipewire`/`default` plugin as a
+separate endpoint. System mode redirects the stable Loopback PCM settings to
+that plugin; direct mode remains available for fixed hardware. The native and
+Windows endpoints share a RAATServer
 rendezvous, so mode transitions stop the managed prefix and restart native
 Bridge before the controller is relaunched. The stop includes the UMU/Proton
 launcher processes so they cannot recreate the Windows RAATServer during the

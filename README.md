@@ -3,8 +3,8 @@
 An Arch-oriented compatibility package for running the Windows Roon desktop app
 as both a **Roon Control** and a **local audio Output** on Linux. It uses a pinned
 GE-Proton runtime through UMU for the controller. The recommended laptop output
-uses native Roon Bridge, an ALSA loopback, and PipeWire so playback follows the
-desktop's currently selected speakers, headphones, USB DAC, or Bluetooth sink.
+uses native Roon Bridge and PipeWire so playback follows the desktop's currently
+selected speakers, headphones, USB DAC, or Bluetooth sink.
 
 The package and primary command are named `roon-proton`. The legacy
 `roon-wine` command remains as a compatibility alias and uses the same existing
@@ -46,9 +46,9 @@ user account, configures the recommended endpoint, and launches the controller.
 
 For a controller-only installation, a PulseAudio desktop, or a system without
 systemd user services, use `roon-proton setup desktop`. This package does not
-silently replace PulseAudio with PipeWire. The desktop-following System Output
-mode requires the optional `pipewire-audio`, `pipewire-pulse`, and `wireplumber`
-packages; install them deliberately if the system does not already use them.
+silently replace PulseAudio with PipeWire. The default System Output mode
+requires the optional `pipewire-audio` and `wireplumber` packages;
+`pipewire-pulse` is only needed for the Wine compatibility output.
 
 Pacman cannot safely perform the per-user setup itself: package install hooks run
 as root, while the proprietary Roon download, prefix, services, and GUI belong to
@@ -80,8 +80,8 @@ block above.
 ## Security model
 
 The launcher and its user services never request root privileges. Pacman only
-installs the package-owned launcher, display rules, PipeWire configuration, and
-the `snd-aloop` module-load setting. Configuration files are parsed as data and
+installs the package-owned launcher, display rules, and the `snd-aloop`
+module-load setting. Configuration files are parsed as data and
 are never sourced or evaluated as shell code.
 
 The Proton runtime, Roon installer, and Roon Bridge archive are restricted to
@@ -213,29 +213,31 @@ Then enable the first **Loopback PCM** device in Roon Settings > Audio, name it
 **System Output (PipeWire)**, and use it as the laptop zone. The route is:
 
 ```text
-Roon Core -> native Roon Bridge -> snd-aloop DEV=0
-          -> adaptive PipeWire capture -> WirePlumber default output
+Roon Core -> native Roon Bridge -> ALSA plug:pipewire
+          -> PipeWire -> MassiveEQ/desktop default output
 ```
 
 It follows the currently selected laptop speakers, wired headphones, USB audio,
 or Bluetooth device and appears in normal PipeWire media and volume controls.
-The package loads `snd-aloop` at boot and pins the bridge to 48 kHz stereo with
-clock-adaptive resampling to prevent drift and dropouts.
+The first Loopback PCM remains the stable Roon zone identity, but system mode
+rewrites that zone's saved RAAT output to PipeWire. PipeWire handles source-rate
+conversion, mixing, output switching, and filters without locking Roon to one
+sample rate.
 
 For a clean zone picker, leave only **System Output (PipeWire)** enabled for this computer.
 Disable the second Loopback PCM, Wine **System Output**, direct laptop audio,
 and unused HDMI devices in Roon Settings > Audio. Roon will still list those
 ALSA devices on the Settings page because it discovers host hardware itself;
-disabled devices do not appear as playback zones. The second loopback device
-cannot safely be hidden at the system level because it is the capture half of
-the paired virtual audio device used by this route.
+disabled devices do not appear as playback zones. The second Loopback PCM is not
+used by the PipeWire route.
 
 `endpoint mode desktop` retains the Wine `System Output` path as a compatibility
 option. Some Wine/Proton combinations reject ordinary PCM formats on that path.
 
-Native Roon Bridge enumerates kernel ALSA `hw:` devices, not this host's
-`pipewire` or `default` ALSA plugin PCMs. It therefore bypasses WirePlumber,
-does not follow the desktop output, and can reserve the device while playing.
+Native Roon Bridge only lists kernel ALSA `hw:` devices in Settings. System mode
+keeps the first Loopback PCM as the visible identity while changing its saved
+RAAT output to `plug:pipewire`, which follows the desktop output. Direct mode
+continues to open the selected hardware device exclusively.
 
 In optional direct mode, Roon talks to the native
 RAAT endpoint, which opens the hardware ALSA device without a desktop mixer or

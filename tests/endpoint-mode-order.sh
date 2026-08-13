@@ -19,7 +19,8 @@ source "$root/roon-wine"
 calls="$temporary/calls"
 require_systemd_user() { :; }
 require_system_output() { :; }
-ensure_loopback_capture() { :; }
+ensure_pipewire_endpoint() { printf 'configure-pipewire\n' >> "$calls"; }
+remove_legacy_system_output() { printf 'remove-legacy\n' >> "$calls"; }
 stop_managed_prefix() { printf 'stop-prefix\n' >> "$calls"; }
 systemctl() { printf 'systemctl %s\n' "$*" >> "$calls"; }
 
@@ -35,8 +36,8 @@ assert_order() {
 }
 
 assert_order system \
-  'systemctl --user stop roonbridge-native.service|stop-prefix|systemctl --user enable --now roon-system-output.service roonbridge-native.service'
+  'remove-legacy|systemctl --user stop roonbridge-native.service|stop-prefix|systemctl --user enable --now roonbridge-native.service|configure-pipewire|systemctl --user restart roonbridge-native.service'
 assert_order direct \
-  'systemctl --user disable --now roon-system-output.service|systemctl --user stop roonbridge-native.service|stop-prefix|systemctl --user enable --now roonbridge-native.service'
+  'remove-legacy|systemctl --user stop roonbridge-native.service|stop-prefix|systemctl --user enable --now roonbridge-native.service'
 
 printf 'endpoint mode ordering passed\n'
