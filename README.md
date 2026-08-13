@@ -91,8 +91,9 @@ International Authenticode signature when the package hash was updated.
 
 Roon and Roon Bridge remain proprietary network applications running with the
 desktop user's permissions; Wine/Proton is a compatibility layer, not a security
-sandbox. Roon's own subsequent auto-updates are controlled by Roon Labs rather
-than this package. Users requiring isolation should run Roon under a separately
+sandbox. Roon Labs controls update availability, while this package pins and
+verifies each controller installer before `roon-proton update` extracts it into
+the managed prefix. Users requiring isolation should run Roon under a separately
 tested sandbox or dedicated user account.
 
 ## Compatibility status
@@ -136,6 +137,18 @@ An AUR installation updates normally through `yay`:
 yay -Syu
 ```
 
+Pacman updates the system package but cannot modify a user's Wine/Proton prefix.
+When Roon Labs publishes a controller build, update the AUR package first and
+then install its pinned, verified payload into the existing prefix:
+
+```sh
+roon-proton update
+```
+
+This preserves the Roon database and settings. Roon's Windows updater may
+download an update successfully and then crash while running its installer
+under Proton; `roon-proton update` avoids that installer path.
+
 If you used the temporary GitHub checkout, update it with:
 
 ```sh
@@ -164,6 +177,7 @@ Configuration is stored in `${XDG_CONFIG_HOME:-~/.config}/roon-wine/config`.
 ```text
 roon-proton setup [system|desktop|direct] install, configure, and launch Roon
 roon-proton install              create or repair the prefix and install Roon
+roon-proton update               install the pinned Roon build and keep user data
 roon-proton run                  launch Roon
 roon-proton doctor               report display, audio, Wine, and prefix state
 roon-proton configure            apply the configured display/audio backends

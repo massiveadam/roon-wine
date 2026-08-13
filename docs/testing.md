@@ -1,5 +1,20 @@
 # Compatibility testing
 
+## 2026-08-13: Roon controller update under Proton
+
+Roon build 1671 successfully checked for build 1683 and downloaded its Windows
+installer, but the installer crashed under Proton with exit code `-1073741819`
+(`0xC0000005`). Package release 0.2.0-7 could extract the verified payload, but
+left the root launchers pointing at build 1671. Starting the stale launcher then
+removed the newly extracted build during its normal version cleanup.
+
+The corrected package update path stops the managed controller, installs the
+numbered payload, and activates the root `Roon.exe` and `RAATServer.exe`
+launchers for that build. A regression test checks build selection, app-host
+path activation, configuration, and version metadata. Live verification on
+`benji` started Roon 2.71 build 1683 through GE-Proton10-34; the controller
+reported machine version `207101683` and the update status `UpToDate`.
+
 ## 2026-07-20: RAAT discovery recovery and endpoint handoff
 
 On the `benji` Arch laptop, neither native Bridge nor the Proton-hosted Windows
