@@ -1,7 +1,7 @@
 # Maintainer: massiveadam <51133980+massiveadam at users dot noreply dot github dot com>
 pkgname=roon-proton
 pkgver=0.2.0
-pkgrel=10
+pkgrel=11
 pkgdesc='Roon desktop controller and native audio endpoint for Arch Linux'
 arch=('x86_64')
 url='https://github.com/massiveadam/roon-wine'
